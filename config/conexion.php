@@ -9,7 +9,7 @@
 		
 $serverName = "SERVIDOR\ASPEL";
 $connectionInfo = array( 
- "Database"=>"SAE0903",
+ "Database"=>"SAE0904",
  "UID"=>"sa",
  "PWD"=>"ASPEL123*",
  "TrustServerCertificate"=>true
