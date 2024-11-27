@@ -44,27 +44,17 @@ class FormModel extends Conectar
 	sqlsrv_begin_transaction($conexion);
 	try{
 		$queryTr = "
-  			DECLARE @CANT FLOAT;
-     			DECLARE @PREC FLOAT;
-			DECLARE @IMPU4 FLOAT;
-   			DECLARE @IMPUTOT4 FLOAT;
-
-      			SET @CANT = (SELECT CANT FROM PAR_FACTV03 WHERE CVE_DOC = ?);
-			SET @PREC = (SELECT PREC FROM PAR_FACTV03 WHERE CVE_DOC = ?);
-		  	SET @IMPU4 = (SELECT 
-     			CASE
-				WHEN IMPU4 <> 0 THEN IMPU4
-    				WHEN IMPU4 = 0 THEN 100
-    			END
-			FROM PAR_FACTV03 WHERE CVE_DOC = ?);	
-     			SET @IMPUTOT4 = @CANT * @PREC * @IMPU4 / 100;
-
- 			UPDATE PAR_FACTV03 SET TOTIMP4 = @IMPUTOT4 WHERE NUM_PAR = 1 AND CVE_DOC = ?;
+ 			UPDATE PAR_FACTV03 SET 
+    			TOTIMP4 = CANT * PREC *
+       				(
+	   			CASE
+					WHEN IMPU4 = 0 THEN 100
+     					ELSE IMPU4
+	   			END
+				) / 100
+	   		WHERE NUM_PAR = 1 AND CVE_DOC = ?;
   		";
 		$paramsTr = [
-			$cve_doc,
-			$cve_doc,
-			$cve_doc,
 			$cve_doc
 		];
 		$stmtTr = sqlsrv_query($conexion,$queryTr, $paramsTr);
@@ -77,6 +67,7 @@ class FormModel extends Conectar
 		sqlsrv_rollback($conexion);
 		die("Error en la transaccion: " .$e->getMessage);
 	}
+	/**************Se actualiza el documento********************/
         //===================================================================================================================
         $query = "UPDATE FACTV03 SET IMPORTE = ?, CAN_TOT = ? WHERE CVE_DOC = ?";
         $params = array($newValue, $newValue, $cve_doc);
