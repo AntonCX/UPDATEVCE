@@ -12,6 +12,11 @@ class FormController {
         $campo2 = $_POST['obs_par'];
         $campo3 = $_POST['obs_vce'];
         $campo4 = $_POST['monto'];
+	$campo5 = isset($_POST['impuesto']) ? $_POST['impuesto'] : null;
+
+	if(!in_array($campo5,['0','10','16'])){
+		die('Selección no válida');
+	}
 
 	//Validacion que el monto sea un numero decimal valido
 	if(!filter_var($campo4,FILTER_VALIDATE_FLOAT)){
