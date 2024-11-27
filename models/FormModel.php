@@ -40,25 +40,43 @@ class FormModel extends Conectar
         if ($stmtP === false) {
             die(print_r(sqlsrv_errors(), true));
         }
-        //Se obtiene la cantidad
-        $queryCant = "SELECT CANT FROM PAR_FACTV03 WHERE CVE_DOC = ?";
-        $paramsCant = array($cve_doc);
-        $stmtCant = sqlsrv_query($conexion, $queryCant, $paramsCant);
-        //Se obtiene el precio
-        $queryPrec = "SELECT PREC FROM PAR_FACTV03 WHERE CVE_DOC = ?";
-        $paramsPrec = array($cve_doc);
-        $stmtPrec = sqlsrv_query($conexion, $queryPrec, $paramsPrec);
-        //Se obtiene la asignacion del impuesto
-        $queryImpuVal = "SELECT CASE WHEN IMPU4 = 0 THEN 100 WHEN IMPU4 <> 0 THEN IMPU4 END from PAR_FACTV03 where CVE_DOC = ?";
-        $paramsImpuVal = array($cve_doc);
-        $stmtImpuVal = sqlsrv_query($conexion, $queryImpuVal, $paramsImpuVal);
-        //Se actualiza el valor total del impuesto
-        $queryIMP = "UPDATE PAR_FACTV03 SET TOTIMP4 = ? WHERE NUM_PAR = 1 AND CVE_DOC = ?";
-        $paramsIMP = array($stmtCant * $stmtPrec * $stmtImpuVal / 100 , $cve_doc);
-        $stmtIMP = sqlsrv_query($conexion, $queryIMP, $paramsIMP);
-        if ($stmtIMP === false) {
-            die(print_r(sqlsrv_errors(), true));
-        }
+	//Se realiza la transaccion para calcular el TOTIMP4
+	sqlsrv_begin_transaction($conexion);
+	try{
+		$queryTr = "
+  			DECLARE @CANT FLOAT;
+     			DECLARE @PREC FLOAT;
+			DECLARE @IMPU4 FLOAT;
+   			DECLARE @IMPUTOT4 FLOAT;
+
+      			SET @CANT = (SELECT CANT FROM PAR_FACTV03 WHERE CVE_DOC = ?);
+			SET @PREC = (SELECT PREC FROM PAR_FACTV03 WHERE CVE_DOC = ?);
+		  	SET @IMPU4 = (SELECT 
+     			CASE
+				WHEN IMPU4 <> 0 THEN IMPU4
+    				WHEN IMPU4 = 0 THEN 100
+    			END
+			FROM PAR_FACTV03 WHERE CVE_DOC = ?);	
+     			SET @IMPUTOT4 = @CANT * @PREC * @IMPU4 / 100;
+
+ 			UPDATE PAR_FACTV03 SET TOTIMP4 = @IMPUTOT4 WHERE NUM_PAR = 1 AND CVE_DOC = ?;
+  		";
+		$paramsTr = [
+			$cve_doc,
+			$cve_doc,
+			$cve_doc,
+			$cve_doc
+		];
+		$stmtTr = sqlsrv_query($conexion,$queryTr, $paramsTr);
+		if ($stmtTr === false) {
+            	die(print_r(sqlsrv_errors(), true));
+        	}
+		sqlsrv_commit($conexion);
+	}
+	catch(Exception $e){
+		sqlsrv_rollback($conexion);
+		die("Error en la transaccion: " .$e->getMessage);
+	}
         //===================================================================================================================
         $query = "UPDATE FACTV03 SET IMPORTE = ?, CAN_TOT = ? WHERE CVE_DOC = ?";
         $params = array($newValue, $newValue, $cve_doc);
