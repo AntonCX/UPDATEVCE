@@ -41,8 +41,8 @@ class FormController {
             return;
         }
 
-        $formModel->updatePrec($campo1, $campo4);
-		$formModel->insertCuenM($campo1, $campo4);
+        $formModel->updatePrec($campo1, $campo4, $campo5);
+	$formModel->insertCuenM($campo1, $campo4);
 
         if (!empty($campo2)) {
             $formModel->insertObsPar($campo2,$campo1);
