@@ -75,6 +75,31 @@ class FormModel extends Conectar
         if ($stmt === false) {
             die(print_r(sqlsrv_errors(), true));
         }
+	//Transaccion para actualizar la suma de los impuestos de todas la partidas del documento
+	sqlsrv_begin_transaction($conexion);
+	try{
+		$queryTr2 = "
+ 			UPDATE FACTV04 SET 
+    			IMP_TOT4 = (SELECT SUM(IMPU4) FROM PAR_FACTV04 WHERE CVE_DOC = ?)
+	   		WHERE CVE_DOC = ?;
+      			UPDATE FACTV04 SET 
+    			IMPORTE = CAN_TOT + IMP_TOT4
+	   		WHERE CVE_DOC = ?;
+  		";
+		$paramsTr2 = [
+			$cve_doc
+		];
+		$stmtTr2 = sqlsrv_query($conexion,$queryTr2, $paramsTr2);
+		if ($stmtTr2 === false) {
+            	die(print_r(sqlsrv_errors(), true));
+        	}
+		sqlsrv_commit($conexion);
+	}
+	catch(Exception $e){
+		sqlsrv_rollback($conexion);
+		die("Error en la transaccion: " .$e->getMessage);
+	}
+	
     }
 
     public function insertCuenM($cve_doc, $campo4)
